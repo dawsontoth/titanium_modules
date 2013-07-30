@@ -6,15 +6,15 @@
  */
 #import "TiProxy.h"
 #import "TiUtils.h"
+#import "GCDAsyncUdpSocket.h"
 
 @interface TiUdpSocketProxy : TiProxy
 {
-    bool isServer;
-    NSString* _hostName;
-    NSData* _hostAddress;
+    long tag;
+    BOOL isRunning;
     NSUInteger _port;
-    CFHostRef _cfHost;
-	CFSocketRef _cfSocket;
+    NSString *_group;
+    GCDAsyncUdpSocket* udpSocket;
 }
 
 -(void)start:(id)args;

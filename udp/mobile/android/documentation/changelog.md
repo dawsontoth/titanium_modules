@@ -1,5 +1,7 @@
 # Change Log
 <pre>
+v2.1.2	Added multicast support with the new "group" arg on socket methods.
+
 v2.1.1	Fixed app crashing when a Socket Exception is encountered
 
 v2.1	Fixed byteData conversion problem on Android (negative values, string conversion)

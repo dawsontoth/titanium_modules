@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.MulticastSocket;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -27,6 +28,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.net.DhcpInfo;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiManager.MulticastLock;
 
 // This proxy can be created by calling Udp.createExample({message: "hello world"})
 @Kroll.proxy(creatableInModule = UdpModule.class)
@@ -36,14 +38,18 @@ public class SocketProxy extends KrollProxy {
 	private static final String LCAT = "SocketProxy";
 
 	// Private Instance Variables
+	private WifiManager _wifiManager;
+	private MulticastLock _multicastLock;
 	private boolean _continueListening;
 	private Thread _listeningThread;
 	private DatagramSocket _socket;
 	private Integer _port;
+	private String _group;
 
 	// Constructor
 	public SocketProxy(TiContext tiContext) {
 		super(tiContext);
+		_wifiManager = (WifiManager) tiContext.getActivity().getSystemService(Context.WIFI_SERVICE);
 	}
 
 	// Start Utility Methods
@@ -52,23 +58,6 @@ public class SocketProxy extends KrollProxy {
 	protected void finalize() throws Throwable {
 		stop();
 		super.finalize();
-	}
-
-	public String getLocalIpAddress() {
-		try {
-			for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
-				NetworkInterface intf = en.nextElement();
-				for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
-					InetAddress inetAddress = enumIpAddr.nextElement();
-					if (!inetAddress.isLoopbackAddress()) {
-						return inetAddress.getHostAddress().toString();
-					}
-				}
-			}
-		} catch (SocketException e) {
-			e.printStackTrace();
-		}
-		return "";
 	}
 
 	private InetAddress getBroadcastAddress() {
@@ -159,8 +148,18 @@ public class SocketProxy extends KrollProxy {
 				return;
 			}
 
+			_group = args.getString("group");
 			_port = args.getInt("port");
-			_socket = new DatagramSocket(_port);
+
+			if (_group != null && _group.length() > 0) {
+				MulticastSocket msocket = new MulticastSocket(_port);
+				_multicastLock = _wifiManager.createMulticastLock("TiUDPReceiverLock");
+				_multicastLock.acquire();
+				msocket.joinGroup(InetAddress.getByName(_group));
+				_socket = msocket;
+			} else {
+				_socket = new DatagramSocket(_port);
+			}
 			_socket.setSoTimeout(0);
 
 			startListening();
@@ -170,6 +169,10 @@ public class SocketProxy extends KrollProxy {
 
 		} catch (SocketException e) {
 			fireError(e);
+		} catch (UnknownHostException e) {
+			fireError(e);
+		} catch (IOException e) {
+			fireError(e);
 		}
 	}
 
@@ -178,18 +181,9 @@ public class SocketProxy extends KrollProxy {
 	public void sendString(HashMap hm) {
 		KrollDict args = new KrollDict(hm);
 		try {
-			if (_socket == null) {
-				fireError("Cannot send data before the socket is started as a client or server!");
-				return;
-			}
 			String data = args.getString("data");
 			byte[] bytes = data.getBytes();
-
-			String host = args.getString("host");
-			int port = args.optInt("port", _port);
-			InetAddress _address = host != null ? InetAddress.getByName(host) : getBroadcastAddress();
-			_socket.send(new DatagramPacket(bytes, bytes.length, _address, port));
-			Log.i(LCAT, "Data Sent!");
+			send(args, bytes);
 		} catch (IOException e) {
 			fireError(e);
 		}
@@ -200,28 +194,45 @@ public class SocketProxy extends KrollProxy {
 	public void sendBytes(HashMap hm) {
 		KrollDict args = new KrollDict(hm);
 		try {
-			if (_socket == null) {
-				fireError("Cannot send data before the socket is started as a client or server!");
-				return;
-			}
 			Object[] data = (Object[]) args.get("data");
 			byte[] bytes = new byte[data.length];
 			for (int i = 0; i < bytes.length; i++) {
 				bytes[i] = (byte) TiConvert.toInt(data[i]);
 			}
-
-			String host = args.getString("host");
-			int port = args.optInt("port", _port);
-			InetAddress _address = host != null ? InetAddress.getByName(host) : getBroadcastAddress();
-			_socket.send(new DatagramPacket(bytes, bytes.length, _address, port));
-			Log.i(LCAT, "Data Sent!");
+			send(args, bytes);
 		} catch (IOException e) {
 			fireError(e);
 		}
 	}
 
+	private void send(KrollDict args, byte[] bytes) throws IOException {
+		if (_socket == null) {
+			fireError("Cannot send data before the socket is started!");
+			return;
+		}
+
+		String host = args.getString("host");
+		String group = args.optString("group", _group);
+		int port = args.optInt("port", _port);
+		InetAddress address;
+		if (host != null && host.length() > 0) {
+			address = InetAddress.getByName(host);
+		} else if (group != null && group.length() > 0) {
+			_socket.setBroadcast(true);
+			address = InetAddress.getByName(group);
+		} else {
+			address = getBroadcastAddress();
+		}
+		_socket.send(new DatagramPacket(bytes, bytes.length, address, port));
+		Log.i(LCAT, "Data Sent!");
+	}
+
 	@Kroll.method
 	public void stop() {
+		if (_multicastLock != null) {
+			_multicastLock.release();
+			_multicastLock = null;
+		}
 		if (_socket != null) {
 			stopListening();
 			_socket.close();
