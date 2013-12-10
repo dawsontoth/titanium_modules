@@ -45,6 +45,11 @@ static void HostResolveCallback(CFHostRef theHost, CFHostInfoType typeInfo, cons
 
 #pragma mark Public API
 
+-(NSString*)apiName
+{
+    return @"Ti.UDP.Socket";
+}
+
 -(void)start:(id)args
 {
     ENSURE_SINGLE_ARG(args, NSDictionary);

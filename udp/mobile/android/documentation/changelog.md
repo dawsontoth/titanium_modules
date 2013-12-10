@@ -1,5 +1,7 @@
 # Change Log
 <pre>
+v2.1.3	Added apiName
+
 v2.1.2	Added socket.bufferSize property to control maximum packet size.
 
 v2.1.1	Fixed app crashing when a Socket Exception is encountered

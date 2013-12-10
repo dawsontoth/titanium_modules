@@ -149,6 +149,11 @@ public class SocketProxy extends KrollProxy {
 	// End Utility Methods
 
 	// Start Public API
+	@Override
+	public String getApiName() {
+		return "Ti.UDP.Socket";
+	}
+
 	@Kroll.method
 	@Kroll.setProperty
 	public void setBufferSize(int size) {
