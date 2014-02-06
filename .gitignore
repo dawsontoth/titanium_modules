@@ -6,3 +6,5 @@ build
 /udp/mobile/ios/udp.xcodeproj/xcuserdata/
 /udp/mobile/android/dist/udp.jar
 /udp/mobile/android/libs/
+/*/mobile/android/libs/
+/*/mobile/android/dist/

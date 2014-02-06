@@ -17,6 +17,7 @@
     GCDAsyncUdpSocket* udpSocket;
 }
 
+-(NSString*)apiName;
 -(void)start:(id)args;
 -(void)sendString:(id)args;
 -(void)sendBytes:(id)args;
