@@ -10,10 +10,8 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
-import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.Enumeration;
 import java.util.HashMap;
 
 import org.appcelerator.kroll.KrollDict;
@@ -30,7 +28,6 @@ import android.net.DhcpInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiManager.MulticastLock;
 
-// This proxy can be created by calling Udp.createExample({message: "hello world"})
 @Kroll.proxy(creatableInModule = UdpModule.class)
 public class SocketProxy extends KrollProxy {
 
@@ -138,11 +135,6 @@ public class SocketProxy extends KrollProxy {
 	// End Utility Methods
 
 	// Start Public API
-	@Override
-	public String getApiName() {
-		return "Ti.UDP.Socket";
-	}
-
 	@Kroll.method
 	@Kroll.setProperty
 	public void setBufferSize(int size) {

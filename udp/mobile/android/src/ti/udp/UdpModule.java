@@ -15,9 +15,4 @@ public class UdpModule extends KrollModule {
 		super(tiContext);
 	}
 
- 	@Override
-	public String getApiName() {
-		return "Ti.UDP";
-	}
-
 }
